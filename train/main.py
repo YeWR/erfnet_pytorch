@@ -81,10 +81,9 @@ class CrossEntropyLoss2d(torch.nn.Module):
     def forward(self, outputs, targets):
         return self.loss(torch.nn.functional.log_softmax(outputs, dim=1), targets)
 
-best_acc = 0
 
 def train(args, model, enc=False):
-    global best_acc
+    best_acc = 0
 
     #TODO: calculate weights by processing dataset histogram (now its being set by hand from the torch values)
     #create a loder to run all images and calculate histogram of labels, then create weight array using class balancing
@@ -336,7 +335,7 @@ def train(args, model, enc=False):
 
         # remember best valIoU and save checkpoint
         if iouVal == 0:
-            current_acc = average_epoch_loss_val
+            current_acc = -average_epoch_loss_val
         else:
             current_acc = iouVal 
         is_best = current_acc > best_acc
