@@ -86,8 +86,9 @@ def main(args):
             images = images.cuda()
             labels = labels.cuda()
 
-        inputs = Variable(images, volatile=True)
-        outputs = model(inputs)
+        inputs = Variable(images)
+        with torch.no_grad():
+            outputs = model(inputs)
 
         iouEvalVal.addBatch(outputs.max(1)[1].unsqueeze(1).data, labels)
 

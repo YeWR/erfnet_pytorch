@@ -106,9 +106,10 @@ def main(args):
             images = images.cuda()
             #labels = labels.cuda()
 
-        inputs = Variable(images, volatile=True)
-        #targets = Variable(labels, volatile=True)
-        outputs = model(inputs)
+        inputs = Variable(images)
+        #targets = Variable(labels)
+        with torch.no_grad():
+            outputs = model(inputs)
 
         label = outputs[0].max(0)[1].byte().cpu().data
         label_cityscapes = cityscapes_trainIds2labelIds(label.unsqueeze(0))

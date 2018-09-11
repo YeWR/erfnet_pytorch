@@ -42,8 +42,9 @@ def main(args):
 
         start_time = time.time()
 
-        inputs = Variable(images, volatile=True)
-        outputs = model(inputs)
+        inputs = Variable(images)
+        with torch.no_grad():
+            outputs = model(inputs)
 
         #preds = outputs.cpu()
         if (not args.cpu):
