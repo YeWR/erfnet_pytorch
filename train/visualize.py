@@ -21,4 +21,4 @@ class Dashboard:
             image = image.data
         image = image.numpy()
 
-        self.vis.image(image, env='images', opts=dict(title=title))
+        self.vis.image(image, env='2_class_dec', opts=dict(title=title))

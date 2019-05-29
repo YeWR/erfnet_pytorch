@@ -20,7 +20,7 @@ from torchvision.transforms import Compose, CenterCrop, Normalize, Resize, Pad
 from torchvision.transforms import ToTensor, ToPILImage
 
 from dataset import VOC12,cityscapes
-from transform import Relabel, ToLabel, Colorize
+from transform import Relabel, ToLabel, Colorize, Bilabel
 from visualize import Dashboard
 
 import importlib
@@ -29,7 +29,7 @@ from iouEval import iouEval, getColorEntry
 from shutil import copyfile
 
 NUM_CHANNELS = 3
-NUM_CLASSES = 20 #pascal=22, cityscapes=20
+NUM_CLASSES = 2 #pascal=22, cityscapes=20
 
 color_transform = Colorize(NUM_CLASSES)
 image_transform = ToPILImage()
@@ -39,6 +39,7 @@ class MyCoTransform(object):
     def __init__(self, enc, augment=True, height=512):
         self.enc=enc
         self.augment = augment
+
         self.height = height
         pass
     def __call__(self, input, target):
@@ -64,9 +65,10 @@ class MyCoTransform(object):
 
         input = ToTensor()(input)
         if (self.enc):
-            target = Resize(int(self.height/8), Image.NEAREST)(target)
+            target = Resize(int(self.height/4), Image.NEAREST * 2)(target)
         target = ToLabel()(target)
-        target = Relabel(255, 19)(target)
+        # target = Relabel(255, 19)(target)
+        target = Bilabel(0)(target)
 
         return input, target
 
@@ -92,45 +94,45 @@ def train(args, model, enc=False):
     if (enc):
         weight[0] = 2.3653597831726	
         weight[1] = 4.4237880706787	
-        weight[2] = 2.9691488742828	
-        weight[3] = 5.3442072868347	
-        weight[4] = 5.2983593940735	
-        weight[5] = 5.2275490760803	
-        weight[6] = 5.4394111633301	
-        weight[7] = 5.3659925460815	
-        weight[8] = 3.4170460700989	
-        weight[9] = 5.2414722442627	
-        weight[10] = 4.7376127243042	
-        weight[11] = 5.2286224365234	
-        weight[12] = 5.455126285553	
-        weight[13] = 4.3019247055054	
-        weight[14] = 5.4264230728149	
-        weight[15] = 5.4331531524658	
-        weight[16] = 5.433765411377	
-        weight[17] = 5.4631009101868	
-        weight[18] = 5.3947434425354
+        # weight[2] = 2.9691488742828
+        # weight[3] = 5.3442072868347
+        # weight[4] = 5.2983593940735
+        # weight[5] = 5.2275490760803
+        # weight[6] = 5.4394111633301
+        # weight[7] = 5.3659925460815
+        # weight[8] = 3.4170460700989
+        # weight[9] = 5.2414722442627
+        # weight[10] = 4.7376127243042
+        # weight[11] = 5.2286224365234
+        # weight[12] = 5.455126285553
+        # weight[13] = 4.3019247055054
+        # weight[14] = 5.4264230728149
+        # weight[15] = 5.4331531524658
+        # weight[16] = 5.433765411377
+        # weight[17] = 5.4631009101868
+        # weight[18] = 5.3947434425354
     else:
         weight[0] = 2.8149201869965	
         weight[1] = 6.9850029945374	
-        weight[2] = 3.7890393733978	
-        weight[3] = 9.9428062438965	
-        weight[4] = 9.7702074050903	
-        weight[5] = 9.5110931396484	
-        weight[6] = 10.311357498169	
-        weight[7] = 10.026463508606	
-        weight[8] = 4.6323022842407	
-        weight[9] = 9.5608062744141	
-        weight[10] = 7.8698215484619	
-        weight[11] = 9.5168733596802	
-        weight[12] = 10.373730659485	
-        weight[13] = 6.6616044044495	
-        weight[14] = 10.260489463806	
-        weight[15] = 10.287888526917	
-        weight[16] = 10.289801597595	
-        weight[17] = 10.405355453491	
-        weight[18] = 10.138095855713	
+        # weight[2] = 3.7890393733978
+        # weight[3] = 9.9428062438965
+        # weight[4] = 9.7702074050903
+        # weight[5] = 9.5110931396484
+        # weight[6] = 10.311357498169
+        # weight[7] = 10.026463508606
+        # weight[8] = 4.6323022842407
+        # weight[9] = 9.5608062744141
+        # weight[10] = 7.8698215484619
+        # weight[11] = 9.5168733596802
+        # weight[12] = 10.373730659485
+        # weight[13] = 6.6616044044495
+        # weight[14] = 10.260489463806
+        # weight[15] = 10.287888526917
+        # weight[16] = 10.289801597595
+        # weight[17] = 10.405355453491
+        # weight[18] = 10.138095855713
 
-    weight[19] = 0
+    # weight[19] = 0
 
     assert os.path.exists(args.datadir), "Error: datadir (dataset directory) could not be loaded"
 
@@ -234,13 +236,13 @@ def train(args, model, enc=False):
             loss.backward()
             optimizer.step()
 
-            epoch_loss.append(loss.data[0])
+            epoch_loss.append(loss.data)
             time_train.append(time.time() - start_time)
 
             if (doIouTrain):
                 #start_time_iou = time.time()
                 iouEvalTrain.addBatch(outputs.max(1)[1].unsqueeze(1).data, targets.data)
-                #print ("Time to add confusion matrix: ", time.time() - start_time_iou)      
+                #print ("Time to add confusion matrix: ", time.time() - start_time_iou)
 
             #print(outputs.size())
             if args.visualize and args.steps_plot > 0 and step % args.steps_plot == 0:
@@ -262,17 +264,17 @@ def train(args, model, enc=False):
                 print ("Time to paint images: ", time.time() - start_time_plot)
             if args.steps_loss > 0 and step % args.steps_loss == 0:
                 average = sum(epoch_loss) / len(epoch_loss)
-                print(f'loss: {average:0.4} (epoch: {epoch}, step: {step})', 
+                print(f'loss: {average:0.4} (epoch: {epoch}, step: {step})',
                         "// Avg time/img: %.4f s" % (sum(time_train) / len(time_train) / args.batch_size))
 
-            
+
         average_epoch_loss_train = sum(epoch_loss) / len(epoch_loss)
-        
+
         iouTrain = 0
         if (doIouTrain):
             iouTrain, iou_classes = iouEvalTrain.getIoU()
             iouStr = getColorEntry(iouTrain)+'{:0.2f}'.format(iouTrain*100) + '\033[0m'
-            print ("EPOCH IoU on TRAIN set: ", iouStr, "%")  
+            print ("EPOCH IoU on TRAIN set: ", iouStr, "%")
 
         #Validate on 500 val images after each epoch of training
         print("----- VALIDATING - EPOCH", epoch, "-----")
@@ -294,7 +296,7 @@ def train(args, model, enc=False):
             outputs = model(inputs, only_encode=enc) 
 
             loss = criterion(outputs, targets[:, 0])
-            epoch_loss_val.append(loss.data[0])
+            epoch_loss_val.append(loss.data)
             time_val.append(time.time() - start_time)
 
 
@@ -474,8 +476,11 @@ def main(args):
         else:
             pretrainedEnc = next(model.children()).encoder
         model = model_file.Net(NUM_CLASSES, encoder=pretrainedEnc)  #Add decoder to encoder
-        if args.cuda:
-            model = torch.nn.DataParallel(model).cuda()
+    if args.cuda:
+        gpus = args.gpu_id.split(',')
+        model = torch.nn.DataParallel(model)
+        # model = model.cuda()
+        # model = torch.nn.DataParallel(model, device_ids=[int(i) for i in gpus])
         #When loading encoder reinitialize weights for decoder because they are set to 0 when training dec
     model = train(args, model, False)   #Train decoder
     print("========== TRAINING FINISHED ===========")
@@ -487,11 +492,12 @@ if __name__ == '__main__':
     parser.add_argument('--state')
 
     parser.add_argument('--port', type=int, default=8097)
+    parser.add_argument('--gpu_id', type=str, nargs='?', default='0', help="device id to run")
     parser.add_argument('--datadir', default=os.getenv("HOME") + "/datasets/cityscapes/")
     parser.add_argument('--height', type=int, default=512)
     parser.add_argument('--num-epochs', type=int, default=150)
     parser.add_argument('--num-workers', type=int, default=4)
-    parser.add_argument('--batch-size', type=int, default=6)
+    parser.add_argument('--batch-size', type=int, default=3)
     parser.add_argument('--steps-loss', type=int, default=50)
     parser.add_argument('--steps-plot', type=int, default=50)
     parser.add_argument('--epochs-save', type=int, default=0)    #You can use this value to save model every X epochs
